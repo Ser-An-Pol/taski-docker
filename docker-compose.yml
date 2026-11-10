@@ -1,0 +1,48 @@
+# Файл docker-compose.yml
+volumes:
+  pg_data:
+  static:
+
+services:
+  db:
+    image: postgres:13.10
+    env_file: .env
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend/
+    env_file: .env
+    volumes:
+      - static:/backend_static
+    depends_on:
+      db:
+        condition: service_healthy
+    # Важно: backend должен быть готов принимать HTTP-запросы
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]  # или любой простой эндпоинт
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    env_file: .env
+    build: ./frontend/
+    command: cp -r /app/build/. /frontend_static/
+    volumes:
+      - static:/frontend_static
+
+  gateway:
+    build: ./gateway/
+    volumes:
+      - static:/staticfiles
+    ports:
+      - 8000:80
+    depends_on:
+      backend:
+        condition: service_healthy   # gateway стартует ТОЛЬКО когда backend реально готов
