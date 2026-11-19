@@ -15,13 +15,11 @@ services:
       - static_volume:/backend_static
   frontend:
     image: seranpolhome/taski_frontend
-    env_file: .env
     command: cp -r /app/build/. /frontend_static/
     volumes:
       - static_volume:/frontend_static
   gateway:
     image: seranpolhome/taski_gateway
-    env_file: .env
     volumes:
       - static_volume:/staticfiles/
     ports:
